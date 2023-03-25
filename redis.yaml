@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-stedi-spencerw
+spec:
+  selector:
+    matchLabels: 
+      app: redis-stedi-spencerw # must match spec.template.metadata.labels
+  serviceName: redis-stedi-spencerw
+  replicas: 1
+  template:
+    metadata:
+      labels: 
+        app: redis-stedi-spencerw
+    spec:
+      containers:
+        - name: redis-stedi-spencerw
+          image: redis:7.0.5-alpine
+          imagePullPolicy: Always
+          args: ["--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes", "--save", "30", "2"]
+          ports: 
+            - containerPort: 6379
+              name: redis
+          env: 
+          - name: REDIS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: redis-secrets-spencerw
+                key: REDIS_PASSWORD
+          volumeMounts:
+            - name: redis-stedi-spencerw
+              mountPath: /data
+  volumeClaimTemplates: 
+  - metadata: 
+      name: redis-stedi-spencerw
+    spec: 
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-stedi-spencerw
+spec:
+  ports:
+    - port: 6379
+      name: redis
+  clusterIP: None
+  selector:
+    app: redis-stedi-spencerw
